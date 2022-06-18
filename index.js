@@ -5,39 +5,30 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
+const routes = require('./routes/routes');
 
 //Initialising the Express App
 const app = express();
 app.use(helmet());              // adding Helmet to enhance your API's security
-app.use(bodyParser.json());     // using bodyParser to parse JSON bodies into JS objects 
 app.use(cors());                // enabling CORS for all requests
 app.use(morgan('combined'));    // adding morgan to log HTTP requests
 
 //Connect to Database
 mongoose.connect("mongodb://localhost:27017/bookingData", { useNewUrlParser:true });
+const database = mongoose.connection
 
-//Schema
-const bookingDataSchema = new mongoose.Schema ({
-    name: String,
-    email: String
+database.on('error', (error) => {
+    console.log(error);
 })
 
-//Model
-const BookingData = mongoose.model("BookingData", bookingDataSchema)
-
-const bookingData = new BookingData ({
-    name: 'Ryan',
-    email: 'ryanpantk@gmail.com'
-});
-
-/*
-bookingData.save();
-
-BookingData.insertMany([], function(err) {
-    if (err) {
-        console.log(err) 
-    } else {
-        console.log("Successfully saved!")
-    }
+database.once('connected', () => {
+    console.log('Database Connected');
 })
-*/
+
+app.use(express.json());
+app.use('/apis', routes)
+
+app.listen(3000, () => {
+    console.log(`Server Started at ${3000}`)
+})
+
