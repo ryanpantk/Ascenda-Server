@@ -11,7 +11,7 @@ router.use(express.urlencoded({ extended: true }));
 
 router.post('/postBooking', async (req, res) => {
     let bookingData = new bookingModel ({
-        //customer information
+        //Customer Profile Information
         salutation: req.body.salutation,
         firstName: encryption.encrypt(req.body.firstName),
         lastName: encryption.encrypt(req.body.lastName),
@@ -19,16 +19,9 @@ router.post('/postBooking', async (req, res) => {
         phoneNumber: encryption.encrypt(req.body.phoneNumber),
         email: encryption.encrypt(req.body.email),
         specialRequests: encryption.encrypt(req.body.specialRequests),
-        //financial information
-        creditCardNumber: req.body.creditCardNumber,
-        creditCardName: req.body.creditCardName,
-        creditCardExpiry: req.body.creditCardExpiry,
-        creditCardVV: req.body.creditCardVV,
-        billingCountry: req.body.Country,
-        billingCity: req.body.billingCity,
-        billingPostal: req.body.billingPostal,
-        billingAddress: req.body.billingAddress,
-        //booking information
+        //Credit Card Information
+        stripeID: req.body.stripeID,
+        //Hotel Booking Information
         destinationID: req.body.destinationID,
         hotelID: req.body.hotelID,
         bookingID: crypto.randomUUID(),
@@ -96,7 +89,8 @@ router.delete('/deleteOneBooking/:id', async (req, res) => {
     }
 })
 
-//Stripe
+//Stripe Create a Session 
+//https://stripe.com/docs/api/checkout/sessions/create
 router.post('/create-checkout-session', async (req,res) => {
     try {
         const session = await stripe.checkout.sessions.create({
@@ -115,11 +109,29 @@ router.post('/create-checkout-session', async (req,res) => {
             success_url: `${process.env.CLIENT_URL}/success.html`,  //"PLACEHOLDER"
             cancel_url: `${process.env.CLIENT_URL}/cancel.html` //"PLACEHOLDER"
         });
-        res.json({url: session.url});
+        res.json({
+            url: session.url,
+            sessionID: session.id
+        });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
 })
-   
+
+//Stripe Retrieve a Session
+//https://stripe.com/docs/api/checkout/sessions/retrieve
+router.get('/get-checkout-session', async (req,res) => {
+    try {
+        const session = await stripe.checkout.sessions.retrieve(
+            req.body.sessionID
+        );
+        res.json({
+            stripeID: session.client_reference_id,
+            paymentStatus: session.payment_status //"paid", "unpaid", "no_payment_required"
+        });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+})   
 
 module.exports = router;
