@@ -4,11 +4,11 @@ mongoose.set('debug', true);
 //Schema
 const bookingDataSchema = new mongoose.Schema ({
     salutation: String,
-    firstName: String,
-    lastName: String,
-    countryCode: String,
-    phoneNumber: String,
-    email: String,
+    firstName: Object,
+    lastName: Object,
+    countryCode: Object,
+    phoneNumber: Object,
+    email: Object,
     specialRequests: String,
     creditCardNumber: Object,
     creditCardName: String,
