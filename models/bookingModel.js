@@ -9,7 +9,7 @@ const bookingDataSchema = new mongoose.Schema ({
     countryCode: Object,
     phoneNumber: Object,
     email: Object,
-    specialRequests: Object,
+    specialRequests: String,
     stripeID: String,
     paymentStatus: String,
     destinationID: String,

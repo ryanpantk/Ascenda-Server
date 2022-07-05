@@ -1,14 +1,14 @@
 const express = require('express');
-const mongoose =  require('mongoose');
 const crypto = require('crypto');
 const bookingModel = require('../models/bookingModel');
-const encryption = require('../middleware/encryption');
+const { MongoClient } = require("mongodb");
 require('dotenv').config();
 
 const router = express.Router()
 const stripe = require('stripe')(process.env.STRIPE_PRIVATE_KEY);
 router.use(express.json());
 router.use(express.urlencoded({ extended: true }));
+const client = new MongoClient(process.env.DATABASE_URL);
 
 const algorithm = 'aes-256-cbc'; 
 const key = process.env.SECRET_KEY;
@@ -41,7 +41,7 @@ router.post('/postBooking', async (req, res) => {
         countryCode: encrypt(req.body.countryCode),
         phoneNumber: encrypt(req.body.phoneNumber),
         email: encrypt(req.body.email),
-        specialRequests: encrypt(req.body.specialRequests),
+        specialRequests: req.body.specialRequests,
         //Credit Card Information
         stripeID: req.body.stripeID,
         paymentStatus: "unpaid",
@@ -49,7 +49,7 @@ router.post('/postBooking', async (req, res) => {
         destinationID: req.body.destinationID,
         hotelID: req.body.hotelID,
         bookingID: crypto.randomUUID(),
-        numberOfNights: req.body.numberOfNights,
+        numberOfRoom: req.body.numberOfRoom,
         startDate: req.body.startDate,
         endDate: req.body.endDate,
         numberOfAdult: req.body.numberOfAdult,
@@ -83,6 +83,47 @@ router.get('/getOneBooking/:id', async (req, res) => {
         res.status(500).json({message: error.message});
     }
 })
+
+//Get by ID Method
+router.get('/destination/:id', async (req, res) => {
+    try{
+        await client.connect();
+        // set namespace
+        const database = client.db("test");
+        const coll = database.collection("destination");
+        let result = await coll.aggregate([
+            {
+                "$search": {
+                    "index": 'default',
+                    "autocomplete": {
+                        "query": `${req.params.id}`,
+                        "path": "term",
+                        "fuzzy": {
+                            "maxEdits": 2,
+                            "prefixLength": 2
+                        }
+                    }
+                }
+            },
+            {
+                $project: {
+                  _id: 1,
+                  term: 1,
+                  uid: 1
+                },
+            },
+            { 
+                $limit: 8 
+            },
+        ]).toArray();
+        res.send(result);
+    }
+    catch(error){
+        res.status(500).json({message: error.message});
+    }
+    
+})
+
 
 //Update by ID Method
 router.patch('/updateOneBooking/:id', async (req, res) => {
