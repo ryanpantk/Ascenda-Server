@@ -1,4 +1,5 @@
 const express = require('express');
+const axios = require('axios');
 const crypto = require('crypto');
 const bookingModel = require('../models/bookingModel');
 const { MongoClient } = require("mongodb");
@@ -14,7 +15,10 @@ const algorithm = 'aes-256-cbc';
 const key = process.env.SECRET_KEY;
 const iv = crypto.randomBytes(16);
 
-//Encrypting text
+/*
+Encrypting text
+*/
+
 function encrypt(text) {
     let cipher = crypto.createCipheriv(algorithm, Buffer.from(key), iv);
     let encrypted = cipher.update(text);
@@ -22,7 +26,9 @@ function encrypt(text) {
     return { iv: iv.toString('hex'), encryptedData: encrypted.toString('hex') };
 }   
  
-// Decrypting text
+/*
+Decrypting text
+*/
 function decrypt(text) {
     let iv = Buffer.from(text.iv, 'hex');
     let encryptedText = Buffer.from(text.encryptedData, 'hex');
@@ -32,9 +38,13 @@ function decrypt(text) {
     return decrypted.toString();
 }
 
+/*
+POST booking information into mongoDB after user submit booking
+*/
+
 router.post('/postBooking', async (req, res) => {
+    console.log(req.body);
     let bookingData = new bookingModel ({
-        //Customer Profile Information
         salutation: req.body.salutation,
         firstName: encrypt(req.body.firstName),
         lastName: encrypt(req.body.lastName),
@@ -42,10 +52,8 @@ router.post('/postBooking', async (req, res) => {
         phoneNumber: encrypt(req.body.phoneNumber),
         email: encrypt(req.body.email),
         specialRequests: req.body.specialRequests,
-        //Credit Card Information
+        paymentStatus: "UNPAID",
         stripeID: req.body.stripeID,
-        paymentStatus: "unpaid",
-        //Hotel Booking Information
         destinationID: req.body.destinationID,
         hotelID: req.body.hotelID,
         bookingID: crypto.randomUUID(),
@@ -68,6 +76,69 @@ router.post('/postBooking', async (req, res) => {
     }
 })
 
+/*
+POST for /api/hotels/prices
+*/
+
+router.post('/hotelsPrice', async (req, res) => {
+
+    try {
+        const ping1 = await axios.get(req.body.url);
+        const ping2 = await axios.get(req.body.url);
+        res.status(200).json(ping2.data)
+    }
+    catch (error) {
+        res.status(400).json({message: error.message})
+    }
+})
+
+/*
+POST for /api/hotels/:id/prices
+*/
+
+router.post('/hotelPrice', async (req, res) => {
+    try {
+        const ping1 = await axios.get(req.body.url);
+        const ping2 = await axios.get(req.body.url);
+        res.status(200).json(ping2.data)
+    }
+    catch (error) {
+        res.status(400).json({message: error.message})
+    }
+})
+
+/*
+POST for /api/hotels/:id
+*/
+
+router.post('/hotelsDetails', async (req, res) => {
+    try {
+        const data = await axios.get(req.body.url);
+        res.status(200).json(data.data)
+    }
+    catch (error) {
+        res.status(400).json({message: error.message})
+    }
+})
+
+/*
+POST for /api/hotels/:id/prices
+*/
+
+router.post('/hotelDetail', async (req, res) => {
+    if(!req.body){
+        return res.status(400).send({status: 'failed'})
+    }
+    try {
+        const data = await axios.get(req.body.url);
+        data.data.status = data.status
+        res.status(200).json(data.data)
+    }
+    catch (error) {
+        res.status(400).json({message: error.message})
+    }
+})
+
 //Get by ID Method
 router.get('/getOneBooking/:id', async (req, res) => {
     try{
@@ -84,7 +155,11 @@ router.get('/getOneBooking/:id', async (req, res) => {
     }
 })
 
-//Get by ID Method
+/*
+GET destination using MongoDB Atlas Search (Autocomplete Search)
+- fuzzy set to 1 to allow typo errors that are off by 1 character
+*/
+
 router.get('/destination/:id', async (req, res) => {
     try{
         await client.connect();
@@ -99,7 +174,7 @@ router.get('/destination/:id', async (req, res) => {
                         "query": `${req.params.id}`,
                         "path": "term",
                         "fuzzy": {
-                            "maxEdits": 2,
+                            "maxEdits": 1,
                             "prefixLength": 2
                         }
                     }
@@ -142,20 +217,11 @@ router.patch('/updateOneBooking/:id', async (req, res) => {
     }
 })
 
-//Delete by ID Method
-router.delete('/deleteOneBooking/:id', async (req, res) => {
-    try {
-        const id = req.params.id;
-        const data = await bookingModel.findByIdAndDelete(id);
-        res.send(`Document with id ${data._id} has been deleted..`);
-    }
-    catch (error) {
-        res.status(400).json({ message: error.message });
-    }
-})
+/*
+POST Stripe Create a Session 
+https://stripe.com/docs/api/checkout/sessions/create
+*/
 
-//Stripe Create a Session 
-//https://stripe.com/docs/api/checkout/sessions/create
 router.post('/create-checkout-session', async (req,res) => {
     try {
         const session = await stripe.checkout.sessions.create({
@@ -178,27 +244,11 @@ router.post('/create-checkout-session', async (req,res) => {
         });
         res.json({
             url: session.url,
-            sessionID: session.id
+            payment_intent: session.payment_intent
         });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
 })
-
-//Stripe Retrieve a Session
-//https://stripe.com/docs/api/checkout/sessions/retrieve
-router.get('/get-checkout-session', async (req,res) => {
-    try {
-        const session = await stripe.checkout.sessions.retrieve(
-            req.body.sessionID
-        );
-        res.json({
-            stripeID: session.client_reference_id,
-            paymentStatus: session.payment_status //"paid", "unpaid", "no_payment_required"
-        });
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
-})   
 
 module.exports = router;
