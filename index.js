@@ -1,13 +1,13 @@
 //Importing Dependencies
 const mongoose =  require('mongoose');
+let config = require('config');
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
-const routes = require('./routes/routes');
+const {router} = require('./routes/routes');
 const stripe = require('stripe')(process.env.STRIPE_PRIVATE_KEY);
-const mongo = process.env.DATABASE_URL;
 const bookingModel = require('./models/bookingModel');
 
 /*
@@ -15,12 +15,15 @@ Initialising the Express App
 */
 
 const app = express();
-app.use(helmet());              // adding Helmet to enhance your API's security
+app.use(helmet());
 app.use(cors({
-    origin: 'http://localhost:3000'  //"PLACEHOLDER" client-side url
+  origin: 'http://localhost:3000'  //"PLACEHOLDER" client-side url
 }));
-app.use(morgan('combined'));    // adding morgan to log HTTP requests
-app.use('/apis', routes)
+if(config.util.getEnv('NODE_ENV') !== 'test') {              // adding Helmet to enhance your API's security
+  app.use(morgan('combined'));    // adding morgan to log HTTP requests
+  mongoose.set('debug', false);
+}
+app.use('/apis', router)
 app.use((req, res, next) => {
   if (req.originalUrl === '/webhook') {
     next();
@@ -35,21 +38,6 @@ app.use(
 )
 
 /*
-Connect to Database
-*/
-
-mongoose.connect(mongo, { useNewUrlParser:true });
-global.database = mongoose.connection
-
-database.on('error', (error) => {
-    console.log(error);
-})
-
-database.once('connected', () => {
-    console.log('Database Connected');
-})
-
-/*
 Webhook to update payment status in DB when successful payment intent is triggered by Stripe
 */
 
@@ -59,7 +47,7 @@ app.post('/webhook',bodyParser.raw({type: '*/*'}), async function(request, respo
     let event = null;
   
     try {
-      event = stripe.webhooks.constructEvent(request.body, sig, "whsec_5cbebf3b8e90f909d811558bbf763d66a1fbf86baa3938ab1c358e58ff32132b");
+      event = stripe.webhooks.constructEvent(request.body, sig, process.env.STRIPE_WEBHOOK_KEY);
     } catch (err) {
       // invalid signature
       console.log(err);
@@ -87,6 +75,22 @@ app.post('/webhook',bodyParser.raw({type: '*/*'}), async function(request, respo
     response.sendStatus(200);
   });
 
+
+
+/*
+Connect to Database
+*/
+
+mongoose.connect(config.DATABASE_URL, { useNewUrlParser:true });
+global.database = mongoose.connection
+database.on('error', (error) => {
+    console.log(error);
+})
+
+database.once('connected', () => {
+    console.log('Database Connected');
+})
+
 /*
 Start Server at Port 5000
 */
@@ -95,3 +99,4 @@ app.listen(5000, () => {
     console.log(`Server Started at ${5000}`)
 })
 
+module.exports = app; // for testing

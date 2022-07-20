@@ -11,7 +11,7 @@ router.use(express.json());
 router.use(express.urlencoded({ extended: true }));
 const client = new MongoClient(process.env.DATABASE_URL);
 
-const algorithm = 'aes-256-cbc'; 
+const algorithm = 'aes-256-cbc';
 const key = process.env.SECRET_KEY;
 const iv = crypto.randomBytes(16);
 
@@ -44,32 +44,36 @@ POST booking information into mongoDB after user submit booking
 
 router.post('/postBooking', async (req, res) => {
     console.log(req.body);
-    let bookingData = new bookingModel ({
-        salutation: req.body.salutation,
-        firstName: encrypt(req.body.firstName),
-        lastName: encrypt(req.body.lastName),
-        countryCode: encrypt(req.body.countryCode),
-        phoneNumber: encrypt(req.body.phoneNumber),
-        email: encrypt(req.body.email),
-        specialRequests: req.body.specialRequests,
-        paymentStatus: "UNPAID",
-        stripeID: req.body.stripeID,
-        destinationID: req.body.destinationID,
-        hotelID: req.body.hotelID,
-        bookingID: crypto.randomUUID(),
-        numberOfRoom: req.body.numberOfRoom,
-        startDate: req.body.startDate,
-        endDate: req.body.endDate,
-        numberOfAdult: req.body.numberOfAdult,
-        numberOfChild: req.body.numberOfChild,
-        roomType: req.body.roomType,
-        averagePrice: req.body.averagePrice,
-        totalPrice: req.body.totalPrice
-    });
-
     try {
-        const dataToSave = await bookingData.save();
-        res.status(200).json(dataToSave)
+        if (req.body.salutation == null || req.body.firstName == null || req.body.lastName == null || req.body.countryCode == null || req.body.phoneNumber == null || req.body.email == null  || req.body.stripeID == null || req.body.destinationID == null  || req.body.hotelID == null || req.body.roomType == null || req.body.totalPrice == null || req.body.startDate == null || req.body.endDate == null) {
+            res.status(400).json({message: "Bad Request. Parameters cannot be null or missing."})
+        }
+        else {
+            let bookingData = new bookingModel ({
+                salutation: req.body.salutation,
+                firstName: encrypt(req.body.firstName),
+                lastName: encrypt(req.body.lastName),
+                countryCode: encrypt(req.body.countryCode),
+                phoneNumber: encrypt(req.body.phoneNumber),
+                email: encrypt(req.body.email),
+                specialRequests: req.body.specialRequests,
+                paymentStatus: "UNPAID",
+                stripeID: req.body.stripeID,
+                destinationID: req.body.destinationID,
+                hotelID: req.body.hotelID,
+                bookingID: crypto.randomUUID(),
+                numberOfRoom: req.body.numberOfRoom,
+                startDate: req.body.startDate,
+                endDate: req.body.endDate,
+                numberOfAdult: req.body.numberOfAdult,
+                numberOfChild: req.body.numberOfChild,
+                roomType: req.body.roomType,
+                totalPrice: req.body.totalPrice
+            });
+
+                const dataToSave = await bookingData.save();
+                res.status(200).json(dataToSave)
+        }
     }
     catch (error) {
         res.status(400).json({message: error.message})
@@ -83,9 +87,13 @@ POST for /api/hotels/prices
 router.post('/hotelsPrice', async (req, res) => {
 
     try {
-        const ping1 = await axios.get(req.body.url);
-        const ping2 = await axios.get(req.body.url);
-        res.status(200).json(ping2.data)
+        if (req.body.url == null) {
+            res.status(400).json({message: "URL must be provided"})
+        } else {
+            let ping1 = await axios.get(req.body.url);
+            const ping2 = await axios.get(req.body.url);
+            res.status(200).json(ping2.data)
+        }
     }
     catch (error) {
         res.status(400).json({message: error.message})
@@ -98,9 +106,31 @@ POST for /api/hotels/:id/prices
 
 router.post('/hotelPrice', async (req, res) => {
     try {
-        const ping1 = await axios.get(req.body.url);
-        const ping2 = await axios.get(req.body.url);
-        res.status(200).json(ping2.data)
+        if (req.body.url == null) {
+            res.status(400).json({message: "URL must be provided"})
+        } else {
+            const ping1 = await axios.get(req.body.url);
+            const ping2 = await axios.get(req.body.url);
+            res.status(200).json(ping2.data)
+        }
+    }
+    catch (error) {
+        res.status(400).json({message: error.message})
+    }
+})
+
+/*
+POST for /api/hotels
+*/
+
+router.post('/hotelsDetail', async (req, res) => {
+    try {
+        if (req.body.url == null) {
+            res.status(400).json({message: "URL must be provided"})
+        } else {
+            const data = await axios.get(req.body.url);
+            res.status(200).json(data.data)
+        }
     }
     catch (error) {
         res.status(400).json({message: error.message})
@@ -111,28 +141,15 @@ router.post('/hotelPrice', async (req, res) => {
 POST for /api/hotels/:id
 */
 
-router.post('/hotelsDetails', async (req, res) => {
-    try {
-        const data = await axios.get(req.body.url);
-        res.status(200).json(data.data)
-    }
-    catch (error) {
-        res.status(400).json({message: error.message})
-    }
-})
-
-/*
-POST for /api/hotels/:id/prices
-*/
-
 router.post('/hotelDetail', async (req, res) => {
-    if(!req.body){
-        return res.status(400).send({status: 'failed'})
-    }
     try {
-        const data = await axios.get(req.body.url);
-        data.data.status = data.status
-        res.status(200).json(data.data)
+        if (req.body.url == null) {
+            res.status(400).json({message: "URL must be provided"})
+        } else {
+            const data = await axios.get(req.body.url);
+            data.data.status = data.status
+            res.status(200).json(data.data)
+        }
     }
     catch (error) {
         res.status(400).json({message: error.message})
@@ -231,9 +248,9 @@ router.post('/create-checkout-session', async (req,res) => {
                 {
                   price_data: {
                     currency: "sgd",
-                    unit_amount: 500,
+                    unit_amount: Math.round(req.body.unit_amount*100),
                     product_data: {
-                      name: "name of the product",
+                      name: "Hotel",
                     },
                   },
                   quantity: 1,
@@ -242,7 +259,7 @@ router.post('/create-checkout-session', async (req,res) => {
             success_url: 'http://localhost:3000/',  //"PLACEHOLDER"
             cancel_url: 'http://localhost:3000/' //"PLACEHOLDER"
         });
-        res.json({
+        res.status(200).json({
             url: session.url,
             payment_intent: session.payment_intent
         });
@@ -251,4 +268,4 @@ router.post('/create-checkout-session', async (req,res) => {
     }
 })
 
-module.exports = router;
+module.exports = {router, encrypt, decrypt};
