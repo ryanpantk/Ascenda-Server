@@ -19,7 +19,7 @@ app.use(helmet());
 app.use(cors({
   origin: 'http://localhost:3000'  //"PLACEHOLDER" client-side url
 }));
-if(config.util.getEnv('NODE_ENV') !== 'test') {              // adding Helmet to enhance your API's security
+if(config.util.getEnv('NODE_ENV') !== 'test') {
   app.use(morgan('combined'));    // adding morgan to log HTTP requests
   mongoose.set('debug', false);
 }
@@ -31,11 +31,6 @@ app.use((req, res, next) => {
     bodyParser.json()(req, res, next);
   }
 });
-app.use(
-  cors({
-      origin: "*"
-  })
-)
 
 /*
 Webhook to update payment status in DB when successful payment intent is triggered by Stripe

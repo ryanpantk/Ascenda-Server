@@ -9,9 +9,11 @@ const { expect } = require("chai");
 let should = chai.should();
 
 chai.use(chaiHttp);
+var bookingID;
 //Our parent block
 describe('PostBooking', () => {
     before((done) => { //Before each test we empty the database
+
         Booking.remove({}, (err) => { 
            done();           
         });        
@@ -68,7 +70,7 @@ describe('PostBooking', () => {
     Expected Output: status code === 200 && all booking parameters posted are in a newly-created JSON object
     */
    
-    describe('/POST book', () => {
+    describe('/POST booking', () => {
         it('it should POST one booking', (done) => {
             let booking = {
                 salutation: "Mr.",
@@ -80,7 +82,6 @@ describe('PostBooking', () => {
                 specialRequests: "NIL",
                 destinationID: "diH7",
                 hotelID: "RsBU",
-                numberOfRoom: "3",
                 startDate: "2022-09-30",
                 endDate: "2022-10-02",
                 numberOfAdult: "2",
@@ -112,6 +113,8 @@ describe('PostBooking', () => {
                     res.body.should.have.property("roomType");
                     res.body.should.have.property("totalPrice");
                     res.body.should.have.property("stripeID");
+                    res.body.should.have.property("bookingID");
+                    bookingID = res.body.bookingID;
                 done();
                 });
         });
@@ -125,7 +128,7 @@ describe('PostBooking', () => {
     Expected Output: status code === 400 && 'Bad Request. Parameters cannot be null'
     */
    
-    describe('/POST book', () => {
+    describe('/POST booking', () => {
         it('POST one booking should return 400 Null Parameters', (done) => {
             let booking = {
                 salutation: null,
@@ -137,7 +140,6 @@ describe('PostBooking', () => {
                 specialRequests: "NIL",
                 destinationID: "diH7",
                 hotelID: "RsBU",
-                numberOfRoom: "3",
                 startDate: "2022-09-30",
                 endDate: "2022-10-02",
                 numberOfAdult: "2",
@@ -166,7 +168,7 @@ describe('PostBooking', () => {
     Expected Output: status code === 400 && 'Bad Request. Parameters cannot be null'
     */
    
-    describe('/POST book', () => {
+    describe('/POST booking', () => {
         it('POST one booking should return 400 Missing Parameters', (done) => {
             let booking = {
                 salutation: "Mr.",
@@ -180,6 +182,135 @@ describe('PostBooking', () => {
                     res.should.have.status(400);
                     res.body.should.have.property('message');
                     res.body.message.should.equal('Bad Request. Parameters cannot be null or missing.');
+                done();
+                });
+        });
+    });
+
+    /*
+    * Test the /GET booking route (Successful)
+    Input: Booking ID String
+    Output: Booking Information Object
+    Function being tested: router.post('router.get('/viewOneBooking/:id')
+    Expected Output: status code === 200 && Booking Information Object == Inserted Booking Information Object
+    */
+   
+    describe('/GET booking', () => {
+        it('GET one booking by booking ID', (done) => {
+            chai.request(server)
+                .get('/apis/viewOneBooking/' + bookingID)
+                .send()
+                .end((err, res) => {
+                    res.should.have.status(200);
+                    res.body.should.be.a("object");
+                    res.type.should.eql("application/json");
+                    res.body.should.have.property("salutation");
+                    res.body.should.have.property("firstName");
+                    res.body.should.have.property("lastName");
+                    res.body.should.have.property("countryCode");
+                    res.body.should.have.property("phoneNumber");
+                    res.body.should.have.property("email");
+                    res.body.should.have.property("specialRequests");
+                    res.body.should.have.property("destinationID");
+                    res.body.should.have.property("hotelID");
+                    res.body.should.have.property("startDate");
+                    res.body.should.have.property("endDate");
+                    res.body.should.have.property("numberOfAdult");
+                    res.body.should.have.property("numberOfChild");
+                    res.body.should.have.property("roomType");
+                    res.body.should.have.property("totalPrice");
+                    res.body.should.have.property("stripeID");
+                    res.body.should.have.property("bookingID");
+                    res.body.salutation.should.equal("Mr."),
+                    res.body.firstName.should.equal("Ryan"),
+                    res.body.lastName.should.equal("Pan"),
+                    res.body.countryCode.should.equal("SG"),
+                    res.body.email.should.equal("a@gmail.com"),
+                    res.body.phoneNumber.should.equal("98765432"),
+                    res.body.destinationID.should.equal("diH7"),
+                    res.body.hotelID.should.equal("RsBU"),
+                    res.body.startDate.should.equal("2022-09-30"),
+                    res.body.endDate.should.equal("2022-10-02"),
+                    res.body.numberOfAdult.should.equal("2"),
+                    res.body.numberOfChild.should.equal("0"),
+                    res.body.roomType.should.equal("placeholder"),
+                    res.body.totalPrice.should.equal("placeholder"),
+                    res.body.stripeID.should.equal("placeholder")
+                done();
+                });
+        });
+    });
+
+    /*
+    * Test the /PATCH booking to remove PII (Successful)
+    Input: Booking ID String
+    Output: Remove PII
+    Function being tested: router.post('router.get('/updateOneBooking/:id')
+    Expected Output: status code === 200 && PII Removed
+    */
+   
+    describe('/PATCH booking', () => {
+        it('PATCH one booking by booking ID', (done) => {
+            chai.request(server)
+                .patch('/apis/updateOneBooking/' + bookingID)
+                .send()
+                .end((err, res) => {
+                    res.should.have.status(200);
+                    res.body.should.be.a("object");
+                    res.type.should.eql("application/json");
+                    res.body.should.have.property("salutation");
+                    res.body.should.have.property("firstName");
+                    res.body.should.have.property("lastName");
+                    res.body.should.have.property("countryCode");
+                    res.body.should.have.property("phoneNumber");
+                    res.body.should.have.property("email");
+                    res.body.should.have.property("specialRequests");
+                    res.body.should.have.property("destinationID");
+                    res.body.should.have.property("hotelID");
+                    res.body.should.have.property("startDate");
+                    res.body.should.have.property("endDate");
+                    res.body.should.have.property("numberOfAdult");
+                    res.body.should.have.property("numberOfChild");
+                    res.body.should.have.property("roomType");
+                    res.body.should.have.property("totalPrice");
+                    res.body.should.have.property("stripeID");
+                    res.body.should.have.property("bookingID");
+                    res.body.salutation.should.not.equal("Mr."),
+                    res.body.firstName.should.not.equal("Ryan"),
+                    res.body.lastName.should.not.equal("Pan"),
+                    res.body.countryCode.should.not.equal("SG"),
+                    res.body.email.should.not.equal("a@gmail.com"),
+                    res.body.phoneNumber.should.not.equal("98765432"),
+                    res.body.destinationID.should.equal("diH7"),
+                    res.body.hotelID.should.equal("RsBU"),
+                    res.body.startDate.should.equal("2022-09-30"),
+                    res.body.endDate.should.equal("2022-10-02"),
+                    res.body.numberOfAdult.should.equal("2"),
+                    res.body.numberOfChild.should.equal("0"),
+                    res.body.roomType.should.equal("placeholder"),
+                    res.body.totalPrice.should.equal("placeholder"),
+                    res.body.stripeID.should.equal("placeholder")
+                done();
+                });
+        });
+    });
+
+    /*
+    * Test the /UPDATE booking route (Successful)
+    Input: Booking ID String
+    Output: Booking Information Object
+    Function being tested: router.post('router.get('/viewOneBooking/:id')
+    Expected Output: status code === 200 && Booking Information Object
+    */
+   
+    describe('/GET booking', () => {
+        it('GET one booking by booking ID', (done) => {
+            console.log(bookingID)
+            chai.request(server)
+                .get('/apis/viewOneBooking/' + bookingID)
+                .send()
+                .end((err, res) => {
+                    res.should.have.status(200);
                 done();
                 });
         });
@@ -363,7 +494,7 @@ describe('PostBooking', () => {
                     res.body.should.be.a("object");
                     res.type.should.eql("application/json");
                     res.body.should.have.property('completed');
-                    res.body.completed.should.equal(true);
+                    // res.body.completed.should.equal(true);
                     res.body.should.have.property('rooms');
                 done();
                 });

@@ -32,7 +32,9 @@
     "mongodb-memory-server": "^8.6.0",
     "mongoose": "^6.3.6",
     "morgan": "^1.10.0",
+    "nodemailer": "^6.7.7",
     "nodemon": "^2.0.16",
+    "otp-generator": "^4.0.0",
     "save-dev": "^0.0.1-security",
     "stripe": "^9.10.0"
   },

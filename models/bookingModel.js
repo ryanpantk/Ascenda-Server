@@ -22,7 +22,8 @@ const bookingDataSchema = new mongoose.Schema ({
     numberOfChild: String,
     roomType: String,
     averagePrice: String,
-    totalPrice: String
+    totalPrice: String,
+    password: String
 })
 
 

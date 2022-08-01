@@ -3,6 +3,8 @@ const axios = require('axios');
 const crypto = require('crypto');
 const bookingModel = require('../models/bookingModel');
 const { MongoClient } = require("mongodb");
+const { generateOTP } = require('../services/otp'); 
+const { sendMail } = require('../services/otpEmail');
 require('dotenv').config();
 
 const router = express.Router()
@@ -44,6 +46,7 @@ POST booking information into mongoDB after user submit booking
 
 router.post('/postBooking', async (req, res) => {
     console.log(req.body);
+    const otpGenerated = generateOTP();
     try {
         if (req.body.salutation == null || req.body.firstName == null || req.body.lastName == null || req.body.countryCode == null || req.body.phoneNumber == null || req.body.email == null  || req.body.stripeID == null || req.body.destinationID == null  || req.body.hotelID == null || req.body.roomType == null || req.body.totalPrice == null || req.body.startDate == null || req.body.endDate == null) {
             res.status(400).json({message: "Bad Request. Parameters cannot be null or missing."})
@@ -57,7 +60,7 @@ router.post('/postBooking', async (req, res) => {
                 phoneNumber: encrypt(req.body.phoneNumber),
                 email: encrypt(req.body.email),
                 specialRequests: req.body.specialRequests,
-                paymentStatus: "UNPAID",
+                paymentStatus: "UNPAID", //to be updated through Stripe Webhook
                 stripeID: req.body.stripeID,
                 destinationID: req.body.destinationID,
                 hotelID: req.body.hotelID,
@@ -68,10 +71,17 @@ router.post('/postBooking', async (req, res) => {
                 numberOfAdult: req.body.numberOfAdult,
                 numberOfChild: req.body.numberOfChild,
                 roomType: req.body.roomType,
-                totalPrice: req.body.totalPrice
+                totalPrice: req.body.totalPrice,
+                password: otpGenerated
             });
 
                 const dataToSave = await bookingData.save();
+                //Send Booking ID and Generated Password to Email Provided
+                await sendMail({
+                    to: decrypt(bookingData.email),
+                    bookingID:(bookingData.bookingID),
+                    password: otpGenerated,
+                });
                 res.status(200).json(dataToSave)
         }
     }
@@ -79,6 +89,30 @@ router.post('/postBooking', async (req, res) => {
         res.status(400).json({message: error.message})
     }
 })
+
+/*
+POST for /api/check-booking-credentials
+*/
+
+router.post('/check-booking-credentials', async (req, res) => {
+
+    try {
+        if (req.body.bookingID == null || req.body.password == null) {
+            res.status(400).json({message: "Credentials must be provided"})
+        } else {
+            const result = await bookingModel.findOne({bookingID: req.body.bookingID, password: req.body.password})
+            if (result != null) {
+                res.status(200).json({check: true})
+            } else {
+                res.status(400).json({check: false, message: error.message})
+            }
+        }
+    }
+    catch (error) {
+        res.status(400).json({message: error.message})
+    }
+})
+
 
 /*
 POST for /api/hotels/prices
@@ -90,7 +124,6 @@ router.post('/hotelsPrice', async (req, res) => {
         if (req.body.url == null) {
             res.status(400).json({message: "URL must be provided"})
         } else {
-            let ping1 = await axios.get(req.body.url);
             const ping2 = await axios.get(req.body.url);
             res.status(200).json(ping2.data)
         }
@@ -109,7 +142,6 @@ router.post('/hotelPrice', async (req, res) => {
         if (req.body.url == null) {
             res.status(400).json({message: "URL must be provided"})
         } else {
-            const ping1 = await axios.get(req.body.url);
             const ping2 = await axios.get(req.body.url);
             res.status(200).json(ping2.data)
         }
@@ -156,22 +188,6 @@ router.post('/hotelDetail', async (req, res) => {
     }
 })
 
-//Get by ID Method
-router.get('/getOneBooking/:id', async (req, res) => {
-    try{
-        const data = await bookingModel.findById(req.params.id);
-        data.firstName = decrypt(data.firstName);
-        data.lastName = decrypt(data.lastName);
-        data.countryCode = decrypt(data.countryCode);
-        data.phoneNumber = decrypt(data.phoneNumber);
-        data.email = decrypt(data.email);
-        res.json(data);
-    }
-    catch(error){
-        res.status(500).json({message: error.message});
-    }
-})
-
 /*
 GET destination using MongoDB Atlas Search (Autocomplete Search)
 - fuzzy set to 1 to allow typo errors that are off by 1 character
@@ -213,21 +229,83 @@ router.get('/destination/:id', async (req, res) => {
     catch(error){
         res.status(500).json({message: error.message});
     }
-    
 })
 
+/*
+Get by Booking ID Method
+*/
 
-//Update by ID Method
+router.get('/viewOneBooking/:id', async (req, res) => {
+    try {
+        const id = req.params.id;
+        console.log(id);
+        const result = await bookingModel.findOne({bookingID: id})
+        result.firstName = decrypt(result.firstName);
+        result.lastName = decrypt(result.lastName);
+        result.countryCode = decrypt(result.countryCode);
+        result.phoneNumber = decrypt(result.phoneNumber);
+        result.email = decrypt(result.email);
+        res.json(result);
+    } catch (error) {
+        res.status(500).json({message: error.message});
+    }
+})
+
+/*
+Update by ID Method to remove PII information
+*/ 
+
 router.patch('/updateOneBooking/:id', async (req, res) => {
     try {
         const id = req.params.id;
         const updatedData = req.body;
-        const options = { new: true };
+        const placeholder = crypto.randomUUID()
 
-        const result = await bookingModel.findByIdAndUpdate(
-            id, updatedData, options
+        const result = await bookingModel.findOneAndUpdate(
+            //query filter by booking id
+            {bookingID: id}, 
+            //update values to remove PII
+            {
+                salutation: placeholder,
+                firstName: encrypt(placeholder),
+                lastName: encrypt(placeholder),
+                countryCode: encrypt(placeholder),
+                phoneNumber: encrypt(placeholder),
+                email: encrypt(placeholder)
+            },
+            { new : true }
         )
         res.send(result);
+    }
+    catch (error) {
+        res.status(400).json({ message: error.message });
+    }
+})
+
+/*
+Get OTP method by booking ID
+*/ 
+
+router.get('/getOTP/:id', async (req, res) => {
+    try {
+        const id = req.params.id;
+
+        const result = await bookingModel.findOne({bookingID: id})
+        if (result != null) {
+            const otpGenerated = generateOTP();
+            try {
+                await sendMail({
+                    to: decrypt(result.email),
+                    OTP: otpGenerated,
+                });
+                res.send({completed: true, message: "OTP sent"});
+            } catch (error) {
+                res.status(400).send({completed: false, message: "Email failed to send"});
+            }
+
+        } else {
+            res.send({completed: false, message: "Cannot find booking ID"});
+        }
     }
     catch (error) {
         res.status(400).json({ message: error.message });
