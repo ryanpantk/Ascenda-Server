@@ -6,6 +6,7 @@ const { MongoClient } = require("mongodb");
 const { generateOTP } = require('../services/otp'); 
 const { sendMail } = require('../services/otpEmail');
 require('dotenv').config();
+const sleep = require('util').promisify(setTimeout)
 
 const router = express.Router()
 const stripe = require('stripe')(process.env.STRIPE_PRIVATE_KEY);
@@ -16,7 +17,6 @@ const client = new MongoClient(process.env.DATABASE_URL);
 const algorithm = 'aes-256-cbc';
 const key = process.env.SECRET_KEY;
 const iv = crypto.randomBytes(16);
-
 /*
 Encrypting text
 */
@@ -72,12 +72,16 @@ router.post('/postBooking', async (req, res) => {
                 numberOfChild: req.body.numberOfChild,
                 roomType: req.body.roomType,
                 totalPrice: req.body.totalPrice,
-                password: otpGenerated
+                password: otpGenerated,
+                hotelName: req.body.hotelName,
+                roomName: req.body.roomName,
+                url: req.body.url
             });
 
                 const dataToSave = await bookingData.save();
                 //Send Booking ID and Generated Password to Email Provided
                 await sendMail({
+                    name: decrypt(bookingData.firstName) + " " + decrypt(bookingData.lastName),
                     to: decrypt(bookingData.email),
                     bookingID:(bookingData.bookingID),
                     password: otpGenerated,
@@ -124,8 +128,20 @@ router.post('/hotelsPrice', async (req, res) => {
         if (req.body.url == null) {
             res.status(400).json({message: "URL must be provided"})
         } else {
-            const ping2 = await axios.get(req.body.url);
-            res.status(200).json(ping2.data)
+            let timesRun = 0;
+            let ping;
+            while (timesRun !==2) {
+                timesRun += 1;
+                console.log(timesRun)
+                ping = await axios.get(req.body.url);
+                if (ping != null && ping.data != null && ping.data.completed===true) {
+                    break;
+                } 
+                (async () => {
+                    await sleep(2000)
+                })()
+            } 
+            res.status(200).json(ping.data)
         }
     }
     catch (error) {
@@ -142,8 +158,20 @@ router.post('/hotelPrice', async (req, res) => {
         if (req.body.url == null) {
             res.status(400).json({message: "URL must be provided"})
         } else {
-            const ping2 = await axios.get(req.body.url);
-            res.status(200).json(ping2.data)
+            let timesRun = 0;
+            let ping;
+            while (timesRun !==2) {
+                timesRun += 1;
+                console.log(timesRun)
+                ping = await axios.get(req.body.url);
+                if (ping != null && ping.data != null && ping.data.completed===true) {
+                    break;
+                } 
+                (async () => {
+                    await sleep(2000)
+                })()
+            } 
+            res.status(200).json(ping.data)
         }
     }
     catch (error) {
@@ -258,8 +286,7 @@ Update by ID Method to remove PII information
 router.patch('/updateOneBooking/:id', async (req, res) => {
     try {
         const id = req.params.id;
-        const updatedData = req.body;
-        const placeholder = crypto.randomUUID()
+        const placeholder = "Placeholder"
 
         const result = await bookingModel.findOneAndUpdate(
             //query filter by booking id

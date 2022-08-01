@@ -3,7 +3,7 @@ let MAIL_SETTINGS = {
     service: "Gmail",
     auth: {
         user: 'ascenda.otp@gmail.com',
-        pass: process.env.MAIL_PASSWORD
+        pass: 'rpnigrglvdhxzfuo'
     }
 }
 const transporter = nodemailer.createTransport(MAIL_SETTINGS);
@@ -13,7 +13,7 @@ try {
     let info = await transporter.sendMail({
     from: MAIL_SETTINGS.auth.user,
     to: params.to, 
-    subject: 'Hello',
+    subject: `Hello ${params.name}`,
     html: `
     <div
         class="container"
