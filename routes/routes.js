@@ -1,22 +1,35 @@
 const express = require('express');
-const axios = require('axios');
 const crypto = require('crypto');
-const bookingModel = require('../models/bookingModel');
+const axios = require('axios');
+const redis = require('redis');
 const { MongoClient } = require("mongodb");
 const { generateOTP } = require('../services/otp'); 
 const { sendMail } = require('../services/otpEmail');
-require('dotenv').config();
-const sleep = require('util').promisify(setTimeout)
-const router = express.Router()
+const bookingModel = require('../models/bookingModel');
+const sleep = require('util').promisify(setTimeout);
+const router = express.Router();
 const stripe = require('stripe')(process.env.STRIPE_PRIVATE_KEY);
+require('dotenv').config();
+require('isomorphic-fetch');
+
+//Parameters for Routing
 router.use(express.json());
 router.use(express.urlencoded({ extended: true }));
-const client = new MongoClient(process.env.DATABASE_URL);
-require('isomorphic-fetch')
-const redis = require('redis')
+
+//Parameters for Encryption
 const algorithm = 'aes-256-cbc';
 const key = process.env.SECRET_KEY;
 const iv = crypto.randomBytes(16);
+
+//MongoDB Connection
+const client = new MongoClient(process.env.DATABASE_URL);
+
+//Redis Connection
+const redis_client = redis.createClient({
+    url:'redis://127.0.0.1:6379',
+    port:6379
+})
+
 /*
 Encrypting text
 */
@@ -27,11 +40,6 @@ function encrypt(text) {
     encrypted = Buffer.concat([encrypted, cipher.final()]);
     return { iv: iv.toString('hex'), encryptedData: encrypted.toString('hex') };
 }   
-
-const redis_client = redis.createClient({
-    url:'redis://127.0.0.1:6379',
-    port:6379
-})
 
 /*
 Decrypting text
@@ -171,7 +179,7 @@ router.get('/hotelsPrice/:id', async (req, res) => {
 })
 
 /*
-POST for /api/hotels/prices (missing url)
+GET for /api/hotels/prices (missing url)
 */
 
 router.get('/hotelsPrice', async (req, res) => {
@@ -218,7 +226,7 @@ router.post('/hotelPrice', async (req, res) => {
 })
 
 /*
-POST for /api/hotels
+GET for /api/hotels
 */
 
 router.get('/hotelsDetail/:id', async (req, res) => {
@@ -264,7 +272,7 @@ router.get('/hotelsDetail', async (req, res) => {
 })
 
 /*
-POST for /api/hotels/:id
+GET for /api/hotels/:id
 */
 
 router.get('/hotelDetail/:id', async (req, res) => {
@@ -357,7 +365,7 @@ router.get('/destination/:id', async (req, res) => {
 })
 
 /*
-Get by Booking ID Method
+GET by Booking ID Method
 */
 
 router.get('/viewOneBooking/:id', async (req, res) => {
@@ -377,7 +385,7 @@ router.get('/viewOneBooking/:id', async (req, res) => {
 })
 
 /*
-Update by ID Method to remove PII information
+PATCH by ID Method to remove PII information
 */ 
 
 router.patch('/updateOneBooking/:id', async (req, res) => {
@@ -407,7 +415,7 @@ router.patch('/updateOneBooking/:id', async (req, res) => {
 })
 
 /*
-Get OTP method by booking ID
+GET OTP method by booking ID
 */ 
 
 router.get('/getOTP/:id', async (req, res) => {

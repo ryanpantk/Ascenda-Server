@@ -1,7 +1,7 @@
 const mongoose =  require('mongoose');
 mongoose.set('debug', true);
 
-//Schema
+//Schema for a Hotel Booking
 const bookingDataSchema = new mongoose.Schema ({
     salutation: String,
     firstName: Object,

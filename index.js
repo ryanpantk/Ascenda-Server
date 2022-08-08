@@ -17,7 +17,7 @@ Initialising the Express App
 const app = express();
 app.use(helmet());
 app.use(cors({
-  origin: 'http://localhost:3000'  //"PLACEHOLDER" client-side url
+  origin: 'http://localhost:3000'  
 }));
 if(config.util.getEnv('NODE_ENV') !== 'test') {
   app.use(morgan('combined'));    // adding morgan to log HTTP requests
@@ -91,7 +91,7 @@ Start Server at Port 5000
 */
 
 app.listen(5000, () => {
-    console.log(`Server Started at ${5000}`)
+    console.log(`Server Started at ${5000}`);
 })
 
 module.exports = app; // for testing
