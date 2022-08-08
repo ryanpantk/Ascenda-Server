@@ -28,6 +28,7 @@
     "dotenv": "^16.0.1",
     "express": "^4.18.1",
     "helmet": "^5.1.0",
+    "isomorphic-fetch": "^3.0.0",
     "mongodb": "^4.7.0",
     "mongodb-memory-server": "^8.6.0",
     "mongoose": "^6.3.6",
@@ -35,6 +36,7 @@
     "nodemailer": "^6.7.7",
     "nodemon": "^2.0.16",
     "otp-generator": "^4.0.0",
+    "redis": "^4.2.0",
     "save-dev": "^0.0.1-security",
     "stripe": "^9.10.0"
   },

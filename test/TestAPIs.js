@@ -86,9 +86,9 @@ describe('PostBooking', () => {
                 endDate: "2022-10-02",
                 numberOfAdult: "2",
                 numberOfChild: "0",
-                stripeID: "placeholder",
-                roomType: "placeholder",
-                totalPrice: "placeholder"
+                stripeID: "pi_3LT6mkCRmKIGlrQS1FEohikP",
+                roomType: "094FDA73D13F7ED00FCE93D94A92F805",
+                totalPrice: "126.05"
             }
             chai.request(server)
                 .post('/apis/postBooking')
@@ -144,9 +144,9 @@ describe('PostBooking', () => {
                 endDate: "2022-10-02",
                 numberOfAdult: "2",
                 numberOfChild: "0",
-                stripeID: "placeholder",
-                roomType: "placeholder",
-                totalPrice: "placeholder"
+                stripeID: "pi_3LT6mkCRmKIGlrQS1FEohikP",
+                roomType: "094FDA73D13F7ED00FCE93D94A92F805",
+                totalPrice: "126.05"
             }
             chai.request(server)
                 .post('/apis/postBooking')
@@ -233,9 +233,9 @@ describe('PostBooking', () => {
                     res.body.endDate.should.equal("2022-10-02"),
                     res.body.numberOfAdult.should.equal("2"),
                     res.body.numberOfChild.should.equal("0"),
-                    res.body.roomType.should.equal("placeholder"),
-                    res.body.totalPrice.should.equal("placeholder"),
-                    res.body.stripeID.should.equal("placeholder")
+                    res.body.roomType.should.equal("094FDA73D13F7ED00FCE93D94A92F805"),
+                    res.body.totalPrice.should.equal("126.05"),
+                    res.body.stripeID.should.equal("pi_3LT6mkCRmKIGlrQS1FEohikP")
                 done();
                 });
         });
@@ -251,6 +251,46 @@ describe('PostBooking', () => {
    
     describe('/PATCH booking', () => {
         it('PATCH one booking by booking ID', (done) => {
+            chai.request(server)
+                .get('/apis/viewOneBooking/' + bookingID)
+                .send()
+                .end((err, res) => {
+                    res.should.have.status(200);
+                    res.body.should.be.a("object");
+                    res.type.should.eql("application/json");
+                    res.body.should.have.property("salutation");
+                    res.body.should.have.property("firstName");
+                    res.body.should.have.property("lastName");
+                    res.body.should.have.property("countryCode");
+                    res.body.should.have.property("phoneNumber");
+                    res.body.should.have.property("email");
+                    res.body.should.have.property("specialRequests");
+                    res.body.should.have.property("destinationID");
+                    res.body.should.have.property("hotelID");
+                    res.body.should.have.property("startDate");
+                    res.body.should.have.property("endDate");
+                    res.body.should.have.property("numberOfAdult");
+                    res.body.should.have.property("numberOfChild");
+                    res.body.should.have.property("roomType");
+                    res.body.should.have.property("totalPrice");
+                    res.body.should.have.property("stripeID");
+                    res.body.should.have.property("bookingID");
+                    res.body.salutation.should.equal("Mr."),
+                    res.body.firstName.should.equal("Ryan"),
+                    res.body.lastName.should.equal("Pan"),
+                    res.body.countryCode.should.equal("SG"),
+                    res.body.email.should.equal("a@gmail.com"),
+                    res.body.phoneNumber.should.equal("98765432"),
+                    res.body.destinationID.should.equal("diH7"),
+                    res.body.hotelID.should.equal("RsBU"),
+                    res.body.startDate.should.equal("2022-09-30"),
+                    res.body.endDate.should.equal("2022-10-02"),
+                    res.body.numberOfAdult.should.equal("2"),
+                    res.body.numberOfChild.should.equal("0"),
+                    res.body.roomType.should.equal("094FDA73D13F7ED00FCE93D94A92F805"),
+                    res.body.totalPrice.should.equal("126.05"),
+                    res.body.stripeID.should.equal("pi_3LT6mkCRmKIGlrQS1FEohikP")
+                });
             chai.request(server)
                 .patch('/apis/updateOneBooking/' + bookingID)
                 .send()
@@ -287,51 +327,26 @@ describe('PostBooking', () => {
                     res.body.endDate.should.equal("2022-10-02"),
                     res.body.numberOfAdult.should.equal("2"),
                     res.body.numberOfChild.should.equal("0"),
-                    res.body.roomType.should.equal("placeholder"),
-                    res.body.totalPrice.should.equal("placeholder"),
-                    res.body.stripeID.should.equal("placeholder")
+                    res.body.roomType.should.equal("094FDA73D13F7ED00FCE93D94A92F805"),
+                    res.body.totalPrice.should.equal("126.05"),
+                    res.body.stripeID.should.equal("pi_3LT6mkCRmKIGlrQS1FEohikP")
                 done();
                 });
         });
     });
 
     /*
-    * Test the /UPDATE booking route (Successful)
-    Input: Booking ID String
-    Output: Booking Information Object
-    Function being tested: router.post('router.get('/viewOneBooking/:id')
-    Expected Output: status code === 200 && Booking Information Object
-    */
-   
-    describe('/GET booking', () => {
-        it('GET one booking by booking ID', (done) => {
-            console.log(bookingID)
-            chai.request(server)
-                .get('/apis/viewOneBooking/' + bookingID)
-                .send()
-                .end((err, res) => {
-                    res.should.have.status(200);
-                done();
-                });
-        });
-    });
-
-    /*
-    * Test POST for /api/hotels (Successful)
+    * Test GET for /api/hotels (Successful)
     Input: JSON object with property "url"
     Output: status code 200 and an array of hotel details JSON object
-    Function being tested: router.post('/hotelDetail')
+    Function being tested: router.get('/hotelDetail')
     Expected Output: status code === 200 && an array of hotel details JSON object
     */
    
-    describe('/POST hotelsDetails', () => {
-        it('POST hotels detail success', (done) => {
-            let payload = {
-                url: "https://hotelapi.loyalty.dev/api/hotels?destination_id=RsBU"
-            }
+    describe('/GET hotelsDetails', () => {
+        it('GET hotels detail success', (done) => {
             chai.request(server)
-                .post('/apis/hotelsDetail')
-                .send(payload)
+                .get('/apis/hotelsDetail/' + 'RsBU')
                 .end((err, res) => {
                     res.should.have.status(200);
                     res.body.should.be.a("array");
@@ -341,20 +356,17 @@ describe('PostBooking', () => {
     });
 
     /*
-    * Test POST for /api/hotels (Missing URL)
+    * Test GET for /api/hotels (Missing URL)
     Input: JSON object with no property "url"
     Output: status code 400 and error message
-    Function being tested: router.post('/hotelDetail')
+    Function being tested: router.get('/hotelDetail')
     Expected Output: status code === 400 && error message
     */
    
-    describe('/POST hotelsDetail', () => {
-        it('POST hotels details failed (missing url)', (done) => {
-            let payload = {
-            }
+    describe('/GET hotelsDetail', () => {
+        it('GET hotels details failed (missing url)', (done) => {
             chai.request(server)
-                .post('/apis/hotelDetail')
-                .send(payload)
+                .get('/apis/hotelDetail')
                 .end((err, res) => {
                     res.should.have.status(400);
                     res.body.should.have.property('message');
@@ -365,21 +377,17 @@ describe('PostBooking', () => {
     });
 
     /*
-    * Test POST for /api/hotels/:id (Successful)
+    * Test GET for /api/hotels/:id (Successful)
     Input: JSON object with property "url"
     Output: status code 200 and hotel details JSON object
-    Function being tested: router.post('/hotelDetail')
+    Function being tested: router.get('/hotelDetail')
     Expected Output: status code === 200 && hotel details JSON object
     */
    
-    describe('/POST hotelDetail', () => {
-        it('POST hotel detail success', (done) => {
-            let payload = {
-                url: "https://hotelapi.loyalty.dev/api/hotels/diH7"
-            }
+    describe('/GET hotelDetail', () => {
+        it('GET hotel detail success', (done) => {
             chai.request(server)
-                .post('/apis/hotelDetail')
-                .send(payload)
+                .get('/apis/hotelDetail/'+ 'diH7')
                 .end((err, res) => {
                     res.should.have.status(200);
                     res.body.should.be.a("object");
@@ -396,20 +404,17 @@ describe('PostBooking', () => {
     });
 
     /*
-    * Test POST for /api/hotels/:id (Missing URL)
+    * Test GET for /api/hotels/:id (Missing URL)
     Input: JSON object with no property "url"
     Output: status code 400 and error message
-    Function being tested: router.post('/hotelDetail')
+    Function being tested: router.get('/hotelDetail')
     Expected Output: status code === 400 && error message
     */
    
-    describe('/POST hotelDetail', () => {
-        it('POST hotel detail failed (missing url)', (done) => {
-            let payload = {
-            }
+    describe('/GET hotelDetail', () => {
+        it('GET hotel detail failed (missing url)', (done) => {
             chai.request(server)
-                .post('/apis/hotelDetail')
-                .send(payload)
+                .get('/apis/hotelDetail')
                 .end((err, res) => {
                     res.should.have.status(400);
                     res.body.should.have.property('message');
@@ -420,21 +425,17 @@ describe('PostBooking', () => {
     });
 
     /*
-    * Test POST for /api/hotels/prices (Successful)
+    * Test GET for /api/hotels/prices (Successful)
     Input: JSON object with property "url"
     Output: status code 200 and array of hotel objects
-    Function being tested: router.post('/hotelsPrice')
+    Function being tested: router.get('/hotelsPrice')
     Expected Output: status code === 200 && array of hotel objects
     */
    
-    describe('/POST hotelsPrice', () => {
-        it('POST hotels price success', (done) => {
-            let payload = {
-                url: "https://hotelapi.loyalty.dev/api/hotels/prices?destination_id=RsBU&checkin=2022-08-20&checkout=2022-08-21&lang=en_US&currency=SGD&country_code=SG&guests=1&partner_id=1"
-            }
+    describe('/GET hotelsPrice', () => {
+        it('GET hotels price success', (done) => {
             chai.request(server)
-                .post('/apis/hotelsPrice')
-                .send(payload)
+                .get('/apis/hotelsPrice/' + 'RsBU&checkin=2022-08-20&checkout=2022-08-21&lang=en_US&currency=SGD&country_code=SG&guests=1&partner_id=1')
                 .end((err, res) => {
                     res.should.have.status(200);
                     res.body.should.be.a("object");
@@ -450,20 +451,17 @@ describe('PostBooking', () => {
     });
 
     /*
-    * Test POST for /api/hotels/price (Missing URL)
+    * Test GET for /api/hotels/price (Missing URL)
     Input: JSON object with no property "url"
     Output: status code 400 and hotel prices JSON object
-    Function being tested: router.post('/hotelsPrice')
+    Function being tested: router.get('/hotelsPrice')
     Expected Output: status code === 400 && error message
     */
    
-    describe('/POST hotelsPrice', () => {
-        it('POST hotels detail failed (missing url)', (done) => {
-            let payload = {
-            }
+    describe('/GET hotelsPrice', () => {
+        it('GET hotels detail failed (missing url)', (done) => {
             chai.request(server)
-                .post('/apis/hotelsPrice')
-                .send(payload)
+                .get('/apis/hotelsPrice/')
                 .end((err, res) => {
                     res.should.have.status(400);
                     res.body.should.have.property('message');

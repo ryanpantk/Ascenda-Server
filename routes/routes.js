@@ -7,13 +7,13 @@ const { generateOTP } = require('../services/otp');
 const { sendMail } = require('../services/otpEmail');
 require('dotenv').config();
 const sleep = require('util').promisify(setTimeout)
-
 const router = express.Router()
 const stripe = require('stripe')(process.env.STRIPE_PRIVATE_KEY);
 router.use(express.json());
 router.use(express.urlencoded({ extended: true }));
 const client = new MongoClient(process.env.DATABASE_URL);
-
+require('isomorphic-fetch')
+const redis = require('redis')
 const algorithm = 'aes-256-cbc';
 const key = process.env.SECRET_KEY;
 const iv = crypto.randomBytes(16);
@@ -27,7 +27,12 @@ function encrypt(text) {
     encrypted = Buffer.concat([encrypted, cipher.final()]);
     return { iv: iv.toString('hex'), encryptedData: encrypted.toString('hex') };
 }   
- 
+
+const redis_client = redis.createClient({
+    url:'redis://127.0.0.1:6379',
+    port:6379
+})
+
 /*
 Decrypting text
 */
@@ -119,21 +124,28 @@ router.post('/check-booking-credentials', async (req, res) => {
 
 
 /*
-POST for /api/hotels/prices
+GET for /api/hotels/prices
 */
 
-router.post('/hotelsPrice', async (req, res) => {
-
+router.get('/hotelsPrice/:id', async (req, res) => {
+    const id = req.params.id;
+    if (id == null) {
+        res.status(400).json({message: "URL must be provided"})
+    } 
+    await redis_client.connect().catch(error => {});
+    const value = await redis_client.get(`${id}`).catch(error => {});
+    console.log("https://hotelapi.loyalty.dev/api/hotels/prices?destination_id=" + id)
     try {
-        if (req.body.url == null) {
-            res.status(400).json({message: "URL must be provided"})
-        } else {
+        if (value){
+            res.status(200).json(JSON.parse(value))
+        } 
+        else {
             let timesRun = 0;
             let ping;
-            while (timesRun !==2) {
+            while (timesRun !==5) {
                 timesRun += 1;
                 console.log(timesRun)
-                ping = await axios.get(req.body.url);
+                ping = await axios.get("https://hotelapi.loyalty.dev/api/hotels/prices?destination_id=" + id);
                 if (ping != null && ping.data != null && ping.data.completed===true) {
                     break;
                 } 
@@ -141,12 +153,38 @@ router.post('/hotelsPrice', async (req, res) => {
                     await sleep(2000)
                 })()
             } 
+            if (ping != null && ping.data != null) {
+                await redis_client.set(`${id}`, JSON.stringify(ping.data)).catch(error => {});
+            }
             res.status(200).json(ping.data)
         }
+        await redis_client.disconnect().catch(error => {});
+    }
+    catch (error) {
+        await redis_client.quit().catch(error => {});
+        if (error.message === "Request failed with status code 422") {
+            res.status(200).json({completed: true, hotels: []})
+        } else {
+            res.status(400).json({message: error.message})
+        }
+    }
+})
+
+/*
+POST for /api/hotels/prices (missing url)
+*/
+
+router.get('/hotelsPrice', async (req, res) => {
+    try {
+        const id = req.params.id;
+        if (id == null) {
+            res.status(400).json({message: "URL must be provided"})
+        } 
     }
     catch (error) {
         res.status(400).json({message: error.message})
     }
+
 })
 
 /*
@@ -160,7 +198,7 @@ router.post('/hotelPrice', async (req, res) => {
         } else {
             let timesRun = 0;
             let ping;
-            while (timesRun !==2) {
+            while (timesRun !==3) {
                 timesRun += 1;
                 console.log(timesRun)
                 ping = await axios.get(req.body.url);
@@ -183,37 +221,94 @@ router.post('/hotelPrice', async (req, res) => {
 POST for /api/hotels
 */
 
-router.post('/hotelsDetail', async (req, res) => {
+router.get('/hotelsDetail/:id', async (req, res) => {
+    const id = req.params.id;
+    await redis_client.connect().catch(error => {});
+    const value = await redis_client.get(`/hotelsDetail/${id}`).catch(error => {});
     try {
-        if (req.body.url == null) {
-            res.status(400).json({message: "URL must be provided"})
+        if (value){
+            res.status(200).json(JSON.parse(value))
         } else {
-            const data = await axios.get(req.body.url);
+            console.log(id)
+            const data = await axios.get(`https://hotelapi.loyalty.dev/api/hotels?destination_id=${id}`);
+            if (data.data) {
+                await redis_client.set(`/hotelsDetail/${id}`, JSON.stringify(data.data)).catch(error => {});
+            }
             res.status(200).json(data.data)
         }
+        console.log("connection closed")
+        await redis_client.disconnect().catch(error => {});
+    }
+    catch (error) {
+        res.status(400).json({message: error.message})
+        console.log("connection closed")
+        await redis_client.disconnect().catch(error => {});
+    }
+})
+
+/*
+GET for /api/hotels/:id (missing URL)
+*/
+
+router.get('/hotelsDetail', async (req, res) => {
+    try {
+        const id = req.params.id;
+        if (id == null) {
+            res.status(400).json({message: "URL must be provided"})
+        } 
     }
     catch (error) {
         res.status(400).json({message: error.message})
     }
+
 })
 
 /*
 POST for /api/hotels/:id
 */
 
-router.post('/hotelDetail', async (req, res) => {
+router.get('/hotelDetail/:id', async (req, res) => {
     try {
-        if (req.body.url == null) {
-            res.status(400).json({message: "URL must be provided"})
+        const id = req.params.id;
+        await redis_client.connect().catch(error => {});
+        const value = await redis_client.get(`/hotelDetail/${id}`).catch(error => {});
+        if (value){
+            res.status(200).json(JSON.parse(value))
         } else {
-            const data = await axios.get(req.body.url);
+            console.log(id)
+            const data = await axios.get(`https://hotelapi.loyalty.dev/api/hotels/${id}`);
             data.data.status = data.status
+            if (data.data && data.status === 200 && data.data.rooms) {
+                await redis_client.set(`/hotelDetail/${id}`, JSON.stringify(data.data)).catch(error => {});
+            }
             res.status(200).json(data.data)
         }
+        console.log("connection closed")
+        await redis_client.disconnect().catch(error => {});
+    }
+    catch (error) {
+        res.status(400).json({message: error.message})
+        console.log("connection closed")
+        await redis_client.disconnect().catch(error => {});
+    }
+
+})
+
+/*
+GET for /api/hotels/:id (missing URL)
+*/
+
+router.get('/hotelDetail', async (req, res) => {
+    try {
+        const id = req.params.id;
+        if (id == null) {
+            res.status(400).json({message: "URL must be provided"})
+        } 
     }
     catch (error) {
         res.status(400).json({message: error.message})
     }
+
 })
 
 /*
@@ -222,6 +317,8 @@ GET destination using MongoDB Atlas Search (Autocomplete Search)
 */
 
 router.get('/destination/:id', async (req, res) => {
+    let id = `${req.params.id}`
+    let replaced = id.replace("%20", " ")
     try{
         await client.connect();
         // set namespace
@@ -232,7 +329,7 @@ router.get('/destination/:id', async (req, res) => {
                 "$search": {
                     "index": 'default',
                     "autocomplete": {
-                        "query": `${req.params.id}`,
+                        "query": `${replaced}`,
                         "path": "term",
                         "fuzzy": {
                             "maxEdits": 1,
@@ -286,7 +383,7 @@ Update by ID Method to remove PII information
 router.patch('/updateOneBooking/:id', async (req, res) => {
     try {
         const id = req.params.id;
-        const placeholder = "Placeholder"
+        const placeholder = "-"
 
         const result = await bookingModel.findOneAndUpdate(
             //query filter by booking id
@@ -295,7 +392,7 @@ router.patch('/updateOneBooking/:id', async (req, res) => {
             {
                 salutation: placeholder,
                 firstName: encrypt(placeholder),
-                lastName: encrypt(placeholder),
+                lastName: encrypt(" "),
                 countryCode: encrypt(placeholder),
                 phoneNumber: encrypt(placeholder),
                 email: encrypt(placeholder)
@@ -361,8 +458,8 @@ router.post('/create-checkout-session', async (req,res) => {
                   quantity: 1,
                 },
               ],
-            success_url: 'http://localhost:3000/',  //"PLACEHOLDER"
-            cancel_url: 'http://localhost:3000/' //"PLACEHOLDER"
+            success_url: 'http://localhost:3000/', 
+            cancel_url: 'http://localhost:3000/'
         });
         res.status(200).json({
             url: session.url,
