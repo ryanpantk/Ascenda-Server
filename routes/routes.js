@@ -8,8 +8,8 @@ const { sendMail } = require('../services/otpEmail');
 const bookingModel = require('../models/bookingModel');
 const sleep = require('util').promisify(setTimeout);
 const router = express.Router();
-const stripe = require('stripe')(process.env.STRIPE_PRIVATE_KEY);
 require('dotenv').config();
+const stripe = require('stripe')(process.env.STRIPE_PRIVATE_KEY);
 require('isomorphic-fetch');
 
 //Parameters for Routing
