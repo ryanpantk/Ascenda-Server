@@ -341,7 +341,7 @@ router.get('/destination/:id', async (req, res) => {
                         "path": "term",
                         "fuzzy": {
                             "maxEdits": 1,
-                            "prefixLength": 2
+                            "prefixLength": 0
                         }
                     }
                 }
