@@ -26,8 +26,7 @@ const client = new MongoClient(process.env.DATABASE_URL);
 
 //Redis Connection
 const redis_client = redis.createClient({
-    url:'redis://127.0.0.1:6379',
-    port:6379
+    url:'redis://default:dyzGxINnZejFiAClaPbmSoJ71XnUvc0m@redis-13442.c292.ap-southeast-1-1.ec2.cloud.redislabs.com:13442'
 })
 
 /*
