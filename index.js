@@ -16,9 +16,7 @@ Initialising the Express App
 
 const app = express();
 app.use(helmet());
-app.use(cors({
-  origin: 'https://heroic-mermaid-485a7a.netlify.app/'  
-}));
+app.use(cors());
 if(config.util.getEnv('NODE_ENV') !== 'test') {
   app.use(morgan('combined'));    // adding morgan to log HTTP requests
   mongoose.set('debug', false);
