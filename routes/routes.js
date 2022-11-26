@@ -465,8 +465,8 @@ router.post('/create-checkout-session', async (req,res) => {
                   quantity: 1,
                 },
               ],
-            success_url: 'http://localhost:3000/', 
-            cancel_url: 'http://localhost:3000/'
+            success_url: 'https://heroic-mermaid-485a7a.netlify.app/', 
+            cancel_url: 'https://heroic-mermaid-485a7a.netlify.app/'
         });
         res.status(200).json({
             url: session.url,
